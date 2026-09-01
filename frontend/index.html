@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Otimizador de Rotas Logísticas</title>
+    
+    <link rel="icon" href="data:,">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container">
+        <aside id="sidebar">
+            <h2>📍 Otimizador de Rotas</h2>
+            
+            <div class="card-busca">
+                <label for="input-cidade">1. Filtrar / Mover para Cidade:</label>
+                <input type="text" id="input-cidade" placeholder="Ex: Monte Carmelo, Araguari, Uberlândia..." autocomplete="off">
+            </div>
+
+            <div class="card-busca">
+                <label for="input-endereco">2. Rua ou Ponto Específico:</label>
+                <div class="busca-wrapper">
+                    <input type="text" id="input-endereco" autocomplete="off" placeholder="Digite a rua ou clique no mapa...">
+                    <ul id="sugestoes-lista" class="sugestoes-ocultas"></ul>
+                </div>
+            </div>
+
+            <div class="card-busca">
+                <label>3. Tipo de Trajeto:</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="tipo_circuito" value="fechado" checked> Voltar ao Início</label>
+                    <label><input type="radio" name="tipo_circuito" value="aberto"> Terminar no último ponto</label>
+                </div>
+            </div>
+
+            <div id="acoes">
+                <button id="btn-otimizar" class="btn primary">🚀 Calcular Métodos</button>
+                <button id="btn-limpar" class="btn secondary">🗑️ Limpar</button>
+            </div>
+
+            <div id="loading" class="loading-box oculto">
+                <div class="spinner"></div>
+                <span>Processando dados e rotas...</span>
+            </div>
+
+            <hr>
+
+            <div id="resultados" class="oculto">
+                <h3>📊 Comparativo de Métodos</h3>
+                
+                <div class="cards-container">
+                    <!-- 0. Original -->
+                    <div class="card-metodo" id="card-original" 
+                         onmouseenter="preVisualizarRota('original')" 
+                         onmouseleave="restaurarRotaFixada()" 
+                         onclick="fixarMetodo('original')">
+                        <div class="card-header">
+                            <strong>0. Ordem Original</strong>
+                            <span class="info-icon" title="Sequência em que os pontos foram inseridos.">ⓘ</span>
+                        </div>
+                        <div class="metricas-grid">
+                            <div class="metrica-item">
+                                <span class="metrica-label">Distância</span>
+                                <span class="metrica-valor"><span id="dist-original">0</span> km</span>
+                            </div>
+                            <div class="metrica-item">
+                                <span class="metrica-label">Tempo Est.</span>
+                                <span class="metrica-valor" id="tempo-original">--</span>
+                            </div>
+                            <div class="metrica-item">
+                                <span class="metrica-label">Combustível</span>
+                                <span class="metrica-valor" id="custo-original">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 1. Vizinho Mais Próximo -->
+                    <div class="card-metodo" id="card-nn" 
+                         onmouseenter="preVisualizarRota('nn')" 
+                         onmouseleave="restaurarRotaFixada()" 
+                         onclick="fixarMetodo('nn')">
+                        <div class="card-header">
+                            <strong>1. Vizinho Mais Próximo</strong>
+                            <span class="info-icon" title="Visita sempre a parada mais próxima seguinte.">ⓘ</span>
+                        </div>
+                        <div class="metricas-grid">
+                            <div class="metrica-item">
+                                <span class="metrica-label">Distância</span>
+                                <span class="metrica-valor"><span id="dist-nn">0</span> km</span>
+                            </div>
+                            <div class="metrica-item">
+                                <span class="metrica-label">Tempo Est.</span>
+                                <span class="metrica-valor" id="tempo-nn">--</span>
+                            </div>
+                            <div class="metrica-item">
+                                <span class="metrica-label">Combustível</span>
+                                <span class="metrica-valor" id="custo-nn">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. 2-Opt -->
+                    <div class="card-metodo" id="card-opt2" 
+                         onmouseenter="preVisualizarRota('opt2')" 
+                         onmouseleave="restaurarRotaFixada()" 
+                         onclick="fixarMetodo('opt2')">
+                        <div class="card-header">
+                            <strong>2. Busca Local (2-Opt)</strong>
+                            <span class="info-icon" title="Remove cruzamentos ineficientes de vias.">ⓘ</span>
+                        </div>
+                        <div class="metricas-grid">
+                            <div class="metrica-item">
+                                <span class="metrica-label">Distância</span>
+                                <span class="metrica-valor"><span id="dist-opt2">0</span> km</span>
+                            </div>
+                            <div class="metrica-item">
+                                <span class="metrica-label">Tempo Est.</span>
+                                <span class="metrica-valor" id="tempo-opt2">--</span>
+                            </div>
+                            <div class="metrica-item">
+                                <span class="metrica-label">Combustível</span>
+                                <span class="metrica-valor" id="custo-opt2">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Simulated Annealing -->
+                    <div class="card-metodo" id="card-sa" 
+                         onmouseenter="preVisualizarRota('sa')" 
+                         onmouseleave="restaurarRotaFixada()" 
+                         onclick="fixarMetodo('sa')">
+                        <div class="card-header">
+                            <strong>3. Simulated Annealing</strong>
+                            <span class="info-icon" title="Meta-heurística estocástica que busca o mínimo global.">ⓘ</span>
+                        </div>
+                        <div class="metricas-grid">
+                            <div class="metrica-item">
+                                <span class="metrica-label">Distância</span>
+                                <span class="metrica-valor"><span id="dist-sa">0</span> km</span>
+                            </div>
+                            <div class="metrica-item">
+                                <span class="metrica-label">Tempo Est.</span>
+                                <span class="metrica-valor" id="tempo-sa">--</span>
+                            </div>
+                            <div class="metrica-item">
+                                <span class="metrica-label">Combustível</span>
+                                <span class="metrica-valor" id="custo-sa">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="lista-pontos-container">
+                <h3>📋 Paradas (<span id="qtd-pontos">0</span>)</h3>
+                <ul id="lista-pontos"></ul>
+            </div>
+        </aside>
+
+        <main id="mapa"></main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-polylineoffset/leaflet.polylineoffset.js"></script>
+    <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

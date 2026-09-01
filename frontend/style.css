@@ -1,0 +1,371 @@
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; 
+}
+
+body, html { 
+    height: 100%; 
+    width: 100%; 
+    overflow: hidden; 
+}
+
+#container { 
+    display: flex; 
+    height: 100vh; 
+    width: 100vw; 
+}
+
+/* SIDEBAR REESTRUTURADA */
+#sidebar {
+    width: 420px; 
+    min-width: 420px;
+    background-color: #0f172a; 
+    color: #f8fafc; 
+    padding: 16px;
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+    z-index: 1000; 
+    overflow-y: auto;
+    border-right: 1px solid #1e293b;
+}
+
+/* Custom Scrollbar */
+#sidebar::-webkit-scrollbar,
+#lista-pontos::-webkit-scrollbar,
+#sugestoes-lista::-webkit-scrollbar {
+    width: 6px;
+}
+#sidebar::-webkit-scrollbar-thumb,
+#lista-pontos::-webkit-scrollbar-thumb,
+#sugestoes-lista::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+
+#sidebar h2 { 
+    font-size: 1.15rem; 
+    color: #38bdf8; 
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.card-busca { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 3px; 
+}
+
+.card-busca label { 
+    font-size: 0.75rem; 
+    font-weight: 600; 
+    color: #94a3b8; 
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.busca-wrapper { 
+    position: relative; 
+}
+
+input[type="text"] {
+    width: 100%; 
+    padding: 8px 10px; 
+    border-radius: 6px;
+    border: 1px solid #334155; 
+    background-color: #1e293b; 
+    color: #fff; 
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input[type="text"]:focus {
+    border-color: #38bdf8;
+}
+
+.radio-group { 
+    display: flex; 
+    gap: 12px; 
+    font-size: 0.8rem; 
+    color: #cbd5e1; 
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+#sugestoes-lista {
+    position: absolute; 
+    top: calc(100% + 2px); 
+    left: 0; 
+    right: 0; 
+    background: #1e293b;
+    border: 1px solid #475569; 
+    border-radius: 6px; 
+    max-height: 180px;
+    overflow-y: auto; 
+    list-style: none; 
+    z-index: 2000;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+}
+
+#sugestoes-lista li { 
+    padding: 8px 10px; 
+    font-size: 0.78rem; 
+    cursor: pointer; 
+    border-bottom: 1px solid #334155; 
+    color: #e2e8f0;
+}
+
+#sugestoes-lista li:last-child {
+    border-bottom: none;
+}
+
+#sugestoes-lista li:hover { 
+    background-color: #0284c7; 
+    color: #fff; 
+}
+
+.sugestoes-ocultas { 
+    display: none; 
+}
+
+.sugestao-info {
+    color: #38bdf8 !important;
+    font-style: italic;
+    cursor: default !important;
+}
+
+.sugestao-vazia {
+    color: #f87171 !important;
+    font-size: 0.75rem;
+    cursor: default !important;
+}
+
+#acoes { 
+    display: flex; 
+    gap: 8px; 
+}
+
+.btn { 
+    flex: 1; 
+    padding: 9px; 
+    border: none; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    font-size: 0.82rem; 
+    transition: 0.2s opacity;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+.btn.primary { background-color: #10b981; color: white; }
+.btn.secondary { background-color: #ef4444; color: white; }
+
+/* LOADING */
+.loading-box {
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    background: #1e293b; 
+    padding: 8px 12px;
+    border-radius: 6px; 
+    font-size: 0.78rem; 
+    color: #38bdf8; 
+    border: 1px solid #0284c7;
+}
+
+.spinner {
+    width: 16px; 
+    height: 16px; 
+    border: 2px solid #334155; 
+    border-top: 2px solid #38bdf8;
+    border-radius: 50%; 
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+hr {
+    border: 0;
+    height: 1px;
+    background: #1e293b;
+}
+
+/* CARDS DE MÉTODOS COMPACTOS E RICOS */
+#resultados h3 {
+    font-size: 0.85rem;
+    color: #38bdf8;
+    margin-bottom: 2px;
+}
+
+.cards-container { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px; 
+    margin-top: 6px; 
+}
+
+.card-metodo {
+    background: #1e293b; 
+    border: 1.5px solid #334155; 
+    border-radius: 6px; 
+    padding: 8px 10px;
+    cursor: pointer; 
+    transition: all 0.2s ease;
+}
+
+.card-metodo:hover { 
+    border-color: #38bdf8; 
+}
+
+.card-metodo.ativo { 
+    border-color: #10b981 !important; 
+    background: #064e3b !important; 
+}
+
+.card-metodo.hover-preview { 
+    border-color: #38bdf8 !important; 
+    background: #0c4a6e !important; 
+}
+
+.card-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    font-size: 0.8rem; 
+    color: #f8fafc; 
+}
+
+.info-icon {
+    background: #334155; 
+    color: #38bdf8; 
+    border-radius: 50%; 
+    width: 16px; 
+    height: 16px;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 0.7rem; 
+    font-weight: bold; 
+    cursor: help;
+}
+
+.metricas-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 4px;
+    margin-top: 6px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.metrica-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.metrica-label {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.metrica-valor {
+    font-size: 0.82rem;
+    font-weight: bold;
+    color: #38bdf8;
+}
+
+.card-metodo.ativo .metrica-valor {
+    color: #a7f3d0;
+}
+
+/* LISTA DE PARADAS COM BADGES COLORIDAS */
+#lista-pontos-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#lista-pontos-container h3 { 
+    font-size: 0.8rem; 
+    color: #94a3b8; 
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#lista-pontos {
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.item-ponto {
+    background: #1e293b;
+    border: 1px solid #334155;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+.item-ponto:hover {
+    background: #334155;
+    border-color: #38bdf8;
+}
+
+.info-ponto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    flex: 1;
+}
+
+.tag-ordem {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #ffffff;
+    width: fit-content;
+}
+
+.info-ponto span {
+    font-size: 0.75rem;
+    color: #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.btn-remover-ponto {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 3px 5px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.btn-remover-ponto:hover {
+    background: #ef444433;
+}
+
+.oculto { display: none; }
+#mapa { flex: 1; height: 100%; }
