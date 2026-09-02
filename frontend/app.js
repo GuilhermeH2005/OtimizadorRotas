@@ -13,8 +13,8 @@ let timerEndereco = null;
 let cidadeAtualFiltro = "Monte Carmelo";
 let dadosResultadoGlobal = null;
 let metodoFixado = null;
-
 let cacheTrajetosGeoJSON = {};
+let instanciaGrafico = null;
 
 // Constantes Logísticas para Cálculo de Frota
 const CONSUMO_MEDIO_KML = 8.5; 
@@ -25,6 +25,7 @@ const CORES_TRECHOS = [
     '#2563eb', '#ea580c', '#16a34a', '#9333ea', '#e11d48', '#0891b2'
 ];
 
+// ÍCONES LEAFLET
 const iconeInicio = L.icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -60,96 +61,244 @@ function criarIconeNumerado(numero, ehPartida = false) {
     });
 }
 
+// RENDERIZAÇÃO DO GRÁFICO
+function renderizarGraficoComparativo(metodos) {
+    const canvas = document.getElementById('graficoComparativo');
+    if (!canvas || !metodos) return;
+
+    const ctx = canvas.getContext('2d');
+    const labels = ['Original', '2-Opt', 'Simulated Annealing', 'Formigas (ACO)'];
+    
+    const distancias = [
+        metodos.original?.distancia_km || 0,
+        metodos.opt2?.distancia_km || 0,
+        metodos.sa?.distancia_km || 0,
+        metodos.aco?.distancia_km || 0
+    ];
+
+    const tempos = [
+        metodos.original?.tempo_execucao_ms || 0,
+        metodos.opt2?.tempo_execucao_ms || 0,
+        metodos.sa?.tempo_execucao_ms || 0,
+        metodos.aco?.tempo_execucao_ms || 0
+    ];
+
+    if (instanciaGrafico) {
+        instanciaGrafico.destroy();
+    }
+
+    const pluginsUsados = [];
+    if (typeof ChartDataLabels !== 'undefined') {
+        pluginsUsados.push(ChartDataLabels);
+    }
+
+    instanciaGrafico = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Distância (km)',
+                    data: distancias,
+                    backgroundColor: 'rgba(59, 130, 246, 0.85)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1,
+                    yAxisID: 'yDistancia'
+                },
+                {
+                    label: 'Tempo Execução (ms)',
+                    data: tempos,
+                    backgroundColor: 'rgba(239, 68, 68, 0.85)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 1,
+                    yAxisID: 'yTempo',
+                    minBarLength: 4 // 👈 Garante que tempos muito rápidos (ex: 0.2ms) desenhem uma barra visível
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                datalabels: {
+                    anchor: 'end',
+                    align: 'top',
+                    color: '#f8fafc',
+                    font: { weight: 'bold', size: 10 },
+                    formatter: (value, context) => {
+                        // 👈 Ajuste: Permite mostrar decimais se o tempo for menor que 1 ms e maior que zero
+                        if (value === 0) return '0 ms'; 
+                        
+                        if (context.dataset.label.includes('Distância')) {
+                            return `${value.toFixed(1)} km`;
+                        } else {
+                            return value < 1 ? `${value.toFixed(2)} ms` : `${value.toFixed(0)} ms`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                yDistancia: {
+                    type: 'linear',
+                    position: 'left',
+                    beginAtZero: true,
+                    title: { display: true, text: 'Distância (km)', color: '#94a3b8' },
+                    ticks: { color: '#cbd5e1' },
+                    grid: { color: 'rgba(255,255,255,0.05)' }
+                },
+                yTempo: {
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: true,
+                    title: { display: true, text: 'Tempo (ms)', color: '#94a3b8' },
+                    ticks: { color: '#cbd5e1' },
+                    grid: { drawOnChartArea: false }
+                },
+                x: {
+                    ticks: { color: '#cbd5e1' },
+                    grid: { color: 'rgba(255,255,255,0.05)' }
+                }
+            }
+        },
+        plugins: pluginsUsados
+    });
+
+    atualizarCardVencedor(metodos);
+}
+
+// CARD DO VENCEDOR
+function atualizarCardVencedor(metodos) {
+    const cardVencedor = document.getElementById('card-vencedor');
+    if (!cardVencedor || !metodos) return;
+
+    const listaMetodos = [
+        { chave: '2-Opt', dados: metodos.opt2 },
+        { chave: 'Simulated Annealing', dados: metodos.sa },
+        { chave: 'Formigas (ACO)', dados: metodos.aco }
+    ].filter(m => m.dados && m.dados.distancia_km > 0);
+
+    if (listaMetodos.length === 0) return;
+
+    let vencedor = listaMetodos.reduce((melhor, atual) => 
+        atual.dados.distancia_km < melhor.dados.distancia_km ? atual : melhor
+    , listaMetodos[0]);
+
+    const distOriginal = metodos.original?.distancia_km || vencedor.dados.distancia_km;
+    const reducao = distOriginal > 0 
+        ? (((distOriginal - vencedor.dados.distancia_km) / distOriginal) * 100).toFixed(1)
+        : 0;
+
+    cardVencedor.innerHTML = `
+        <span class="vencedor-badge">🏆 MELHOR ROTA ENCONTRADA</span>
+        <div class="vencedor-info">
+            <h3>Método: <span>${vencedor.chave}</span></h3>
+            <p>Economia de <strong>${reducao}%</strong> em relação ao trajeto original.</p>
+        </div>
+        <div class="vencedor-stats">
+            <div class="vencedor-stat-card">
+                <span>Distância Total</span>
+                <strong>${vencedor.dados.distancia_km.toFixed(2)} km</strong>
+            </div>
+            <div class="vencedor-stat-card">
+                <span>Tempo Execução</span>
+                <strong>${vencedor.dados.tempo_execucao_ms.toFixed(1)} ms</strong>
+            </div>
+        </div>
+    `;
+}
+
 // 1. FILTRO DE CIDADE
 const inputCidade = document.getElementById('input-cidade');
-inputCidade.addEventListener('input', () => {
-    clearTimeout(timerCidade);
-    const termoCidade = inputCidade.value.trim();
-    if (termoCidade.length < 3) return;
+if (inputCidade) {
+    inputCidade.addEventListener('input', () => {
+        clearTimeout(timerCidade);
+        const termoCidade = inputCidade.value.trim();
+        if (termoCidade.length < 3) return;
 
-    timerCidade = setTimeout(async () => {
-        try {
-            mostrarLoading(true);
-            const url = `https://nominatim.openstreetmap.org/search?format=json&city=${encodeURIComponent(termoCidade)}&country=brazil&limit=1`;
-            const res = await fetch(url, { headers: { 'User-Agent': 'OtimizadorTCC-TSP/1.0' } });
-            const dados = await res.json();
-            mostrarLoading(false);
+        timerCidade = setTimeout(async () => {
+            try {
+                mostrarLoading(true);
+                const url = `https://nominatim.openstreetmap.org/search?format=json&city=${encodeURIComponent(termoCidade)}&country=brazil&limit=1`;
+                const res = await fetch(url, { headers: { 'User-Agent': 'OtimizadorTCC-TSP/1.0' } });
+                const dados = await res.json();
+                mostrarLoading(false);
 
-            if (dados && dados.length > 0) {
-                cidadeAtualFiltro = termoCidade;
-                map.flyTo([parseFloat(dados[0].lat), parseFloat(dados[0].lon)], 13, { duration: 1.2 });
+                if (dados && dados.length > 0) {
+                    cidadeAtualFiltro = termoCidade;
+                    map.flyTo([parseFloat(dados[0].lat), parseFloat(dados[0].lon)], 13, { duration: 1.2 });
+                }
+            } catch (err) {
+                mostrarLoading(false);
             }
-        } catch (err) {
-            mostrarLoading(false);
-        }
-    }, 500);
-});
+        }, 500);
+    });
+}
 
 // 2. AUTOCOMPLETE DE ENDEREÇOS
 const inputEndereco = document.getElementById('input-endereco');
 const sugestoesLista = document.getElementById('sugestoes-lista');
 
-inputEndereco.addEventListener('input', () => {
-    clearTimeout(timerEndereco);
-    const termoRua = inputEndereco.value.trim();
-    
-    if (termoRua.length < 2) {
-        sugestoesLista.classList.add('sugestoes-ocultas');
-        sugestoesLista.innerHTML = '';
-        return;
-    }
-
-    sugestoesLista.innerHTML = '<li class="sugestao-info">🔍 Pesquisando endereços...</li>';
-    sugestoesLista.classList.remove('sugestoes-ocultas');
-
-    timerEndereco = setTimeout(async () => {
-        try {
-            const cidadeFiltro = inputCidade.value.trim() || cidadeAtualFiltro || "Monte Carmelo";
-            const termoSemNumero = termoRua.replace(/\s+\d+.*$/, '').trim();
-
-            let dados = [];
-
-            let url1 = `https://nominatim.openstreetmap.org/search?format=json&street=${encodeURIComponent(termoRua)}&city=${encodeURIComponent(cidadeFiltro)}&country=brazil&limit=5`;
-            let res = await fetch(url1, { headers: { 'User-Agent': 'OtimizadorTCC-TSP/1.0' } });
-            dados = await res.json();
-
-            if ((!dados || dados.length === 0) && termoSemNumero !== termoRua) {
-                let url2 = `https://nominatim.openstreetmap.org/search?format=json&street=${encodeURIComponent(termoSemNumero)}&city=${encodeURIComponent(cidadeFiltro)}&country=brazil&limit=5`;
-                res = await fetch(url2, { headers: { 'User-Agent': 'OtimizadorTCC-TSP/1.0' } });
-                dados = await res.json();
-            }
-
-            if (!dados || dados.length === 0) {
-                const buscaLivre = `${termoRua}, ${cidadeFiltro}, Minas Gerais, Brasil`;
-                let url3 = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(buscaLivre)}&countrycodes=br&limit=5`;
-                res = await fetch(url3, { headers: { 'User-Agent': 'OtimizadorTCC-TSP/1.0' } });
-                dados = await res.json();
-            }
-
+if (inputEndereco && sugestoesLista) {
+    inputEndereco.addEventListener('input', () => {
+        clearTimeout(timerEndereco);
+        const termoRua = inputEndereco.value.trim();
+        
+        if (termoRua.length < 2) {
+            sugestoesLista.classList.add('sugestoes-ocultas');
             sugestoesLista.innerHTML = '';
-
-            if (dados && dados.length > 0) {
-                dados.forEach(item => {
-                    const li = document.createElement('li');
-                    li.innerText = item.display_name;
-                    li.onclick = () => selecionarEndereco(item);
-                    sugestoesLista.appendChild(li);
-                });
-                sugestoesLista.classList.remove('sugestoes-ocultas');
-            } else {
-                sugestoesLista.innerHTML = '<li class="sugestao-vazia">⚠️ Rua não encontrada. Clique direto no mapa.</li>';
-                sugestoesLista.classList.remove('sugestoes-ocultas');
-            }
-        } catch (err) {
-            sugestoesLista.innerHTML = '<li class="sugestao-vazia">❌ Erro de conexão na busca.</li>';
+            return;
         }
-    }, 400);
-});
+
+        sugestoesLista.innerHTML = '<li class="sugestao-info">🔍 Pesquisando endereços...</li>';
+        sugestoesLista.classList.remove('sugestoes-ocultas');
+
+        timerEndereco = setTimeout(async () => {
+            try {
+                const cidadeFiltro = inputCidade?.value.trim() || cidadeAtualFiltro || "Monte Carmelo";
+                const termoSemNumero = termoRua.replace(/\s+\d+.*$/, '').trim();
+
+                let dados = [];
+                let url1 = `https://nominatim.openstreetmap.org/search?format=json&street=${encodeURIComponent(termoRua)}&city=${encodeURIComponent(cidadeFiltro)}&country=brazil&limit=5`;
+                let res = await fetch(url1, { headers: { 'User-Agent': 'OtimizadorTCC-TSP/1.0' } });
+                dados = await res.json();
+
+                if ((!dados || dados.length === 0) && termoSemNumero !== termoRua) {
+                    let url2 = `https://nominatim.openstreetmap.org/search?format=json&street=${encodeURIComponent(termoSemNumero)}&city=${encodeURIComponent(cidadeFiltro)}&country=brazil&limit=5`;
+                    res = await fetch(url2, { headers: { 'User-Agent': 'OtimizadorTCC-TSP/1.0' } });
+                    dados = await res.json();
+                }
+
+                if (!dados || dados.length === 0) {
+                    const buscaLivre = `${termoRua}, ${cidadeFiltro}, Minas Gerais, Brasil`;
+                    let url3 = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(buscaLivre)}&countrycodes=br&limit=5`;
+                    res = await fetch(url3, { headers: { 'User-Agent': 'OtimizadorTCC-TSP/1.0' } });
+                    dados = await res.json();
+                }
+
+                sugestoesLista.innerHTML = '';
+
+                if (dados && dados.length > 0) {
+                    dados.forEach(item => {
+                        const li = document.createElement('li');
+                        li.innerText = item.display_name;
+                        li.onclick = () => selecionarEndereco(item);
+                        sugestoesLista.appendChild(li);
+                    });
+                    sugestoesLista.classList.remove('sugestoes-ocultas');
+                } else {
+                    sugestoesLista.innerHTML = '<li class="sugestao-vazia">⚠️ Rua não encontrada. Clique direto no mapa.</li>';
+                    sugestoesLista.classList.remove('sugestoes-ocultas');
+                }
+            } catch (err) {
+                sugestoesLista.innerHTML = '<li class="sugestao-vazia">❌ Erro de conexão na busca.</li>';
+            }
+        }, 400);
+    });
+}
 
 function selecionarEndereco(item) {
-    sugestoesLista.classList.add('sugestoes-ocultas');
-    sugestoesLista.innerHTML = '';
-    inputEndereco.value = '';
+    if (sugestoesLista) sugestoesLista.classList.add('sugestoes-ocultas');
+    if (inputEndereco) inputEndereco.value = '';
     const lat = parseFloat(item.lat);
     const lng = parseFloat(item.lon);
     map.setView([lat, lng], 15);
@@ -157,7 +306,7 @@ function selecionarEndereco(item) {
 }
 
 document.addEventListener('click', (e) => {
-    if (!e.target.closest('.card-busca')) {
+    if (sugestoesLista && !e.target.closest('.card-busca')) {
         sugestoesLista.classList.add('sugestoes-ocultas');
     }
 });
@@ -193,21 +342,17 @@ function adicionarPonto(lat, lng, nomeEndereco) {
 
     const marcador = L.marker([lat, lng], {
         icon: ehInicio ? iconeInicio : iconeParadaPadrao,
-        draggable: true // 1. Permite arrastar o pino no mapa
+        draggable: true
     }).addTo(map);
 
-    // 2. Atualiza a posição da parada quando o pino é arrastado
     marcador.on('dragend', function (event) {
         const novaPos = event.target.getLatLng();
-        
-        // Procura o ponto na lista global pelo ID/índice correspondente
-        const ponto = pontos.find(p => p.id === (ehInicio ? 'inicio' : novoId));
-        if (ponto) {
-            ponto.lat = novaPos.lat;
-            ponto.lng = novaPos.lng;
+        const pEncontrado = pontos.find(p => p.id === novoId);
+        if (pEncontrado) {
+            pEncontrado.lat = novaPos.lat;
+            pEncontrado.lng = novaPos.lng;
         }
-
-        limparRotaDesenhada(); // Reseta as linhas desenhadas para o novo cálculo
+        limparRotaDesenhada();
     });
 
     marcador.bindPopup(`<b>${ehInicio ? '📍 Partida' : '📦 Ponto #' + novoId}:</b><br>${nomeEndereco}`);
@@ -243,20 +388,46 @@ function formatarCustoCombustivel(distanciaKm) {
     return `R$ ${custo.toFixed(0)}`;
 }
 
+function selecionarMetodo(chaveMetodo, elementoCard) {
+    document.querySelectorAll('.card-metodo-item').forEach(card => card.classList.remove('active'));
+    if (elementoCard) {
+        elementoCard.classList.add('active');
+    }
+
+    if (typeof fixarMetodo === 'function') {
+        fixarMetodo(chaveMetodo);
+    }
+
+    const dados = dadosResultadoGlobal?.metodos?.[chaveMetodo];
+    const listaUl = document.getElementById('lista-paradas-algoritmo');
+    const titulo = document.getElementById('titulo-sequencia-metodo');
+
+    if (titulo) {
+        titulo.innerText = `Sequência da Rota (${chaveMetodo.toUpperCase()}):`;
+    }
+
+    if (listaUl && dados?.ordem) {
+        listaUl.innerHTML = dados.ordem.map((ponto, idx) => `
+            <li><strong>${idx + 1}ª Parada:</strong> ${ponto.nome || ponto.endereco || 'Ponto ' + (idx + 1)}</li>
+        `).join('');
+    }
+}
+
 function atualizarListaUI(ordemExibicao = null) {
     const ul = document.getElementById('lista-pontos');
-    document.getElementById('qtd-pontos').innerText = pontos.length;
+    const qtdEl = document.getElementById('qtd-pontos');
+    if (qtdEl) qtdEl.innerText = pontos.length;
+    if (!ul) return;
+    
     ul.innerHTML = '';
 
     if (ordemExibicao) {
-        // MODO OTIMIZADO (Exibe as paradas na ordem da rota calculada)
         ordemExibicao.forEach((pontoIdx, seq) => {
             const p = pontos[pontoIdx];
+            if (!p) return;
             const corTag = seq === 0 ? '#ef4444' : CORES_TRECHOS[(seq - 1) % CORES_TRECHOS.length];
             const li = document.createElement('li');
             li.className = 'item-ponto';
-            
-            // 📍 AQUI ENTRA A MELHORIA: Interatividade ao clicar na parada
             li.style.cursor = 'pointer';
             li.title = "Clique para localizar no mapa";
             li.onclick = () => focarNoPonto(pontoIdx);
@@ -272,16 +443,12 @@ function atualizarListaUI(ordemExibicao = null) {
             ul.appendChild(li);
         });
     } else {
-        // MODO PADRÃO (Exibe as paradas na ordem original de adição)
         pontos.forEach((p, idx) => {
             const li = document.createElement('li');
             li.className = 'item-ponto';
-            
-            // 📍 AQUI ENTRA A MELHORIA: Interatividade ao clicar na parada
             li.style.cursor = 'pointer';
             li.title = "Clique para localizar no mapa";
             li.onclick = (e) => {
-                // Evita focar no mapa se o usuário estiver clicando no botão de excluir
                 if (!e.target.closest('.btn-remover-ponto')) {
                     focarNoPonto(idx);
                 }
@@ -301,72 +468,115 @@ function atualizarListaUI(ordemExibicao = null) {
     }
 }
 
+function alternarPainelResultados() {
+    const painel = document.getElementById('resultados');
+    if (painel) {
+        painel.classList.toggle('recolhido');
+    }
+}
+
 function limparRotaDesenhada() {
     if (camadaRota) {
         map.removeLayer(camadaRota);
         camadaRota = null;
     }
     cacheTrajetosGeoJSON = {};
-    document.getElementById('resultados').classList.add('oculto');
+    const resEl = document.getElementById('resultados');
+    if (resEl) resEl.classList.add('oculto');
     marcadores.forEach((m, idx) => m.setIcon(idx === 0 ? iconeInicio : iconeParadaPadrao));
 }
 
 // 4. BOTÃO OTIMIZAR
-document.getElementById('btn-otimizar').addEventListener('click', async () => {
-    if (pontos.length < 3) return alert('Adicione no mínimo 3 pontos (1 Início + 2 Paradas).');
+const btnOtimizar = document.getElementById('btn-otimizar');
+if (btnOtimizar) {
+    btnOtimizar.addEventListener('click', async () => {
+        if (pontos.length < 3) return alert('Adicione no mínimo 3 pontos (1 Início + 2 Paradas).');
 
-    const circuitoFechado = document.querySelector('input[name="tipo_circuito"]:checked').value === 'fechado';
+        const circuitoFechado = document.querySelector('input[name="tipo_circuito"]:checked')?.value === 'fechado';
 
-    try {
-        mostrarLoading(true);
-        const response = await fetch('http://localhost:3000/api/otimizar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pontos, circuito_fechado: circuitoFechado })
-        });
+        try {
+            mostrarLoading(true);
+            const response = await fetch('http://localhost:3000/api/otimizar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pontos, circuito_fechado: circuitoFechado })
+            });
 
-        dadosResultadoGlobal = await response.json();
+            dadosResultadoGlobal = await response.json();
 
-        if (dadosResultadoGlobal.erro) {
-            mostrarLoading(false);
-            return alert('Erro: ' + dadosResultadoGlobal.erro);
-        }
-
-        // Atualização de Métricas nos Cards (Original + Métodos)
-        const chaves = ['original', 'nn', 'opt2', 'sa'];
-        chaves.forEach(ch => {
-            if (dadosResultadoGlobal.metodos[ch]) {
-                const dist = dadosResultadoGlobal.metodos[ch].distancia_km;
-                const elDist = document.getElementById(`dist-${ch}`);
-                const elTempo = document.getElementById(`tempo-${ch}`);
-                const elCusto = document.getElementById(`custo-${ch}`);
-
-                if (elDist) elDist.innerText = dist;
-                if (elTempo) elTempo.innerText = formatarTempoViagem(dist);
-                if (elCusto) elCusto.innerText = formatarCustoCombustivel(dist);
+            if (dadosResultadoGlobal.erro) {
+                mostrarLoading(false);
+                return alert('Erro: ' + dadosResultadoGlobal.erro);
             }
-        });
 
-        document.getElementById('resultados').classList.remove('oculto');
+           const chaves = ['original', 'opt2', 'sa', 'aco'];
 
-        await preCarregarTrajetosMemoria();
+chaves.forEach(ch => {
+    if (dadosResultadoGlobal.metodos?.[ch]) {
+        const dist = dadosResultadoGlobal.metodos[ch].distancia_km;
 
-        const melhorMetodo = ['sa', 'opt2', 'nn'].reduce((a, b) => 
-            dadosResultadoGlobal.metodos[a].distancia_km <= dadosResultadoGlobal.metodos[b].distancia_km ? a : b
-        );
+        // IDs exatos do seu HTML
+        const elDist = document.getElementById(`card-dist-${ch}`);
+        const elCombustivel = document.getElementById(`card-combustivel-${ch}`);
+        const elTempo = document.getElementById(`card-tempo-${ch}`);
 
-        mostrarLoading(false);
-        fixarMetodo(melhorMetodo);
-
-    } catch (err) {
-        mostrarLoading(false);
-        alert('Falha ao conectar com o backend.');
+        // Preenchimento com formatação adequada
+        if (elDist) elDist.innerText = `${dist.toFixed(2)} km`;
+        if (elCombustivel) elCombustivel.innerText = `⛽ ${formatarCustoCombustivel(dist)}`;
+        if (elTempo) elTempo.innerText = `⏱️ ${formatarTempoViagem(dist)}`;
     }
 });
 
+            const resEl = document.getElementById('resultados');
+            if (resEl) resEl.classList.remove('oculto');
+            
+            renderizarGraficoComparativo(dadosResultadoGlobal.metodos);
+            await preCarregarTrajetosMemoria();
+
+            const melhorMetodo = ['aco', 'sa', 'opt2', 'nn'].reduce((a, b) => {
+                if (!dadosResultadoGlobal.metodos?.[a]) return b;
+                if (!dadosResultadoGlobal.metodos?.[b]) return a;
+                return dadosResultadoGlobal.metodos[a].distancia_km <= dadosResultadoGlobal.metodos[b].distancia_km ? a : b;
+            });
+
+            mostrarLoading(false);
+            fixarMetodo(melhorMetodo);
+
+        } catch (err) {
+            mostrarLoading(false);
+            alert('Falha ao conectar com o backend.');
+        }
+    });
+}
+
+function trocarAba(event, abaId) {
+    document.querySelectorAll('.aba-item').forEach(aba => aba.classList.remove('active'));
+    document.querySelectorAll('.aba-btn').forEach(btn => btn.classList.remove('active'));
+
+    document.getElementById(abaId)?.classList.add('active');
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+    }
+
+    const mapaAbas = {
+        'aba-original': 'original',
+        'aba-opt2': 'opt2',
+        'aba-sa': 'sa',
+        'aba-aco': 'aco'
+    };
+
+    const chaveMetodo = mapaAbas[abaId];
+
+    if (chaveMetodo && dadosResultadoGlobal?.metodos?.[chaveMetodo]) {
+        fixarMetodo(chaveMetodo);
+    }
+}
+
 async function preCarregarTrajetosMemoria() {
     cacheTrajetosGeoJSON = {};
-    const chaves = ['original', 'nn', 'opt2', 'sa'];
+    if (!dadosResultadoGlobal?.metodos) return;
+
+    const chaves = ['original', 'nn', 'opt2', 'sa', 'aco'];
     const ehCircuitoFechado = dadosResultadoGlobal.circuito_fechado;
 
     for (const chave of chaves) {
@@ -381,6 +591,8 @@ async function preCarregarTrajetosMemoria() {
         for (let i = 0; i < pontosOrdenados.length - 1; i++) {
             const pOrigem = pontosOrdenados[i];
             const pDestino = pontosOrdenados[i + 1];
+            if (!pOrigem || !pDestino) continue;
+
             const url = `https://router.project-osrm.org/route/v1/driving/${pOrigem.lng},${pOrigem.lat};${pDestino.lng},${pDestino.lat}?overview=full&geometries=geojson`;
 
             try {
@@ -395,7 +607,7 @@ async function preCarregarTrajetosMemoria() {
     }
 }
 
-// 5. RENDERIZAÇÃO
+// 5. RENDERIZAÇÃO DE TRAJETO
 function renderizarTrajetoDaMemoria(chaveMetodo, corFixa = null) {
     if (camadaRota) {
         map.removeLayer(camadaRota);
@@ -447,14 +659,16 @@ function fixarMetodo(chaveMetodo) {
     metodoFixado = chaveMetodo;
     atualizarDestaqueCards(chaveMetodo);
     
-    const rota = dadosResultadoGlobal.metodos[chaveMetodo].rota;
-    atualizarMarcadoresNumerados(rota);
-    atualizarListaUI(rota);
-    renderizarTrajetoDaMemoria(chaveMetodo);
+    if (dadosResultadoGlobal?.metodos?.[chaveMetodo]) {
+        const rota = dadosResultadoGlobal.metodos[chaveMetodo].rota;
+        atualizarMarcadoresNumerados(rota);
+        atualizarListaUI(rota);
+        renderizarTrajetoDaMemoria(chaveMetodo);
+    }
 }
 
 function preVisualizarRota(chaveMetodo) {
-    if (!dadosResultadoGlobal || !cacheTrajetosGeoJSON[chaveMetodo]) return;
+    if (!dadosResultadoGlobal?.metodos?.[chaveMetodo] || !cacheTrajetosGeoJSON[chaveMetodo]) return;
     atualizarDestaqueCards(chaveMetodo, true);
     
     const rota = dadosResultadoGlobal.metodos[chaveMetodo].rota;
@@ -463,7 +677,7 @@ function preVisualizarRota(chaveMetodo) {
 }
 
 function restaurarRotaFixada() {
-    if (!dadosResultadoGlobal || !metodoFixado) return;
+    if (!dadosResultadoGlobal?.metodos || !metodoFixado) return;
     atualizarDestaqueCards(metodoFixado);
     
     const rota = dadosResultadoGlobal.metodos[metodoFixado].rota;
@@ -486,6 +700,7 @@ function atualizarDestaqueCards(chaveAtiva, temporario = false) {
 }
 
 function atualizarMarcadoresNumerados(ordemRota) {
+    if (!ordemRota) return;
     ordemRota.forEach((pontoIdx, seq) => {
         if (marcadores[pontoIdx]) {
             if (seq === 0) {
@@ -499,29 +714,31 @@ function atualizarMarcadoresNumerados(ordemRota) {
 
 function mostrarLoading(exibir) {
     const el = document.getElementById('loading');
+    if (!el) return;
     if (exibir) el.classList.remove('oculto');
     else el.classList.add('oculto');
 }
 
 // 6. BOTÃO LIMPAR
-document.getElementById('btn-limpar').addEventListener('click', () => {
-    pontos = [];
-    marcadores.forEach(m => map.removeLayer(m));
-    marcadores = [];
-    dadosResultadoGlobal = null;
-    metodoFixado = null;
-    limparRotaDesenhada();
-    atualizarListaUI();
-});
+const btnLimpar = document.getElementById('btn-limpar');
+if (btnLimpar) {
+    btnLimpar.addEventListener('click', () => {
+        pontos = [];
+        marcadores.forEach(m => map.removeLayer(m));
+        marcadores = [];
+        dadosResultadoGlobal = null;
+        metodoFixado = null;
+        limparRotaDesenhada();
+        atualizarListaUI();
+    });
+}
 
 function focarNoPonto(pontoIdx) {
     const p = pontos[pontoIdx];
     if (!p) return;
     
-    // Centraliza e dá zoom no mapa na coordenada da parada
     map.setView([p.lat, p.lng], 16, { animate: true });
     
-    // Abre o popup do marcador correspondente
     if (marcadores[pontoIdx]) {
         marcadores[pontoIdx].openPopup();
     }

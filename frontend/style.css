@@ -15,32 +15,42 @@ body, html {
     display: flex; 
     height: 100vh; 
     width: 100vw; 
+    position: relative;
+    overflow: hidden;
 }
 
-/* SIDEBAR REESTRUTURADA */
+/* ==========================================================================
+   1. SIDEBAR / PAINEL LATERAL
+   ========================================================================== */
 #sidebar {
     width: 420px; 
     min-width: 420px;
+    height: 100vh;
     background-color: #0f172a; 
     color: #f8fafc; 
     padding: 16px;
     display: flex; 
     flex-direction: column; 
-    gap: 10px; 
+    gap: 12px; 
     z-index: 1000; 
-    overflow-y: auto;
     border-right: 1px solid #1e293b;
+    overflow-y: auto;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbars */
 #sidebar::-webkit-scrollbar,
 #lista-pontos::-webkit-scrollbar,
-#sugestoes-lista::-webkit-scrollbar {
+.lista-pontos-container::-webkit-scrollbar,
+#sugestoes-lista::-webkit-scrollbar,
+#resultados::-webkit-scrollbar {
     width: 6px;
 }
+
 #sidebar::-webkit-scrollbar-thumb,
 #lista-pontos::-webkit-scrollbar-thumb,
-#sugestoes-lista::-webkit-scrollbar-thumb {
+.lista-pontos-container::-webkit-scrollbar-thumb,
+#sugestoes-lista::-webkit-scrollbar-thumb,
+#resultados::-webkit-scrollbar-thumb {
     background: #334155;
     border-radius: 4px;
 }
@@ -56,7 +66,7 @@ body, html {
 .card-busca { 
     display: flex; 
     flex-direction: column; 
-    gap: 3px; 
+    gap: 4px; 
 }
 
 .card-busca label { 
@@ -92,6 +102,7 @@ input[type="text"]:focus {
     gap: 12px; 
     font-size: 0.8rem; 
     color: #cbd5e1; 
+    margin-top: 2px;
 }
 
 .radio-group label {
@@ -156,7 +167,7 @@ input[type="text"]:focus {
 
 .btn { 
     flex: 1; 
-    padding: 9px; 
+    padding: 10px; 
     border: none; 
     border-radius: 6px; 
     cursor: pointer; 
@@ -202,113 +213,28 @@ hr {
     background: #1e293b;
 }
 
-/* CARDS DE MÉTODOS COMPACTOS E RICOS */
-#resultados h3 {
-    font-size: 0.85rem;
-    color: #38bdf8;
-    margin-bottom: 2px;
-}
-
-.cards-container { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 6px; 
-    margin-top: 6px; 
-}
-
-.card-metodo {
-    background: #1e293b; 
-    border: 1.5px solid #334155; 
-    border-radius: 6px; 
-    padding: 8px 10px;
-    cursor: pointer; 
-    transition: all 0.2s ease;
-}
-
-.card-metodo:hover { 
-    border-color: #38bdf8; 
-}
-
-.card-metodo.ativo { 
-    border-color: #10b981 !important; 
-    background: #064e3b !important; 
-}
-
-.card-metodo.hover-preview { 
-    border-color: #38bdf8 !important; 
-    background: #0c4a6e !important; 
-}
-
-.card-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    font-size: 0.8rem; 
-    color: #f8fafc; 
-}
-
-.info-icon {
-    background: #334155; 
-    color: #38bdf8; 
-    border-radius: 50%; 
-    width: 16px; 
-    height: 16px;
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    font-size: 0.7rem; 
-    font-weight: bold; 
-    cursor: help;
-}
-
-.metricas-grid {
-    display: grid;
-    grid-template-columns: 1.2fr 1fr 1fr;
-    gap: 4px;
-    margin-top: 6px;
-    padding-top: 4px;
-    border-top: 1px solid rgba(255,255,255,0.08);
-}
-
-.metrica-item {
+/* LISTA DE PARADAS - EXPANDIDA E ROLÁVEL */
+.lista-pontos-container {
+    flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 200px;
+    max-height: calc(100vh - 320px);
+    background: #0f172a;
 }
 
-.metrica-label {
-    font-size: 0.65rem;
-    color: #94a3b8;
-    text-transform: uppercase;
-}
-
-.metrica-valor {
-    font-size: 0.82rem;
-    font-weight: bold;
-    color: #38bdf8;
-}
-
-.card-metodo.ativo .metrica-valor {
-    color: #a7f3d0;
-}
-
-/* LISTA DE PARADAS COM BADGES COLORIDAS */
-#lista-pontos-container {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-#lista-pontos-container h3 { 
+.lista-pontos-container h3 { 
     font-size: 0.8rem; 
     color: #94a3b8; 
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-bottom: 6px;
 }
 
 #lista-pontos {
-    max-height: 280px;
+    flex: 1;
     overflow-y: auto;
-    padding-right: 5px;
+    padding-right: 4px;
 }
 
 .item-ponto {
@@ -319,6 +245,9 @@ hr {
     border-radius: 6px;
     font-size: 13px;
     transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .item-ponto:hover {
@@ -367,5 +296,536 @@ hr {
     background: #ef444433;
 }
 
-.oculto { display: none; }
-#mapa { flex: 1; height: 100%; }
+/* CARDS DE MÉTODOS NA SIDEBAR (SE USADOS) */
+.cards-container { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px; 
+    margin-top: 6px; 
+}
+
+.card-metodo {
+    background: #1e293b; 
+    border: 1.5px solid #334155; 
+    border-radius: 6px; 
+    padding: 8px 10px;
+    cursor: pointer; 
+    transition: all 0.2s ease;
+}
+
+.card-metodo:hover { border-color: #38bdf8; }
+.card-metodo.ativo { border-color: #10b981 !important; background: #064e3b !important; }
+.card-metodo.hover-preview { border-color: #38bdf8 !important; background: #0c4a6e !important; }
+
+.card-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    font-size: 0.8rem; 
+    color: #f8fafc; 
+}
+
+.info-icon {
+    background: #334155; 
+    color: #38bdf8; 
+    border-radius: 50%; 
+    width: 16px; 
+    height: 16px;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 0.7rem; 
+    font-weight: bold; 
+    cursor: help;
+}
+
+.metricas-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 4px;
+    margin-top: 6px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.metrica-item { display: flex; flex-direction: column; }
+.metrica-label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; }
+.metrica-valor { font-size: 0.82rem; font-weight: bold; color: #38bdf8; }
+.card-metodo.ativo .metrica-valor { color: #a7f3d0; }
+
+/* ==========================================================================
+   2. ÁREA PRINCIPAL E MAPA
+   ========================================================================== */
+#main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #0b0f19;
+}
+
+#mapa { 
+    height: 100%; 
+    width: 100%; 
+    z-index: 1;
+}
+
+/* ==========================================================================
+   3. GAVETA INFERIOR DE RESULTADOS (DRAWER RECOLHÍVEL)
+   ========================================================================== */
+#resultados {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #0f172a;
+    border-top: 2px solid #334155;
+    z-index: 1000;
+    padding: 10px 14px 14px 14px;
+    max-height: 42vh; /* Reduzido para expor mais o mapa */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: transform 0.3s ease-in-out;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* CARD DE VENCEDOR (~10% MENOR) */
+.card-vencedor {
+    background: linear-gradient(135deg, #064e3b 0%, #047857 100%);
+    border: 1.5px solid #10b981;
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.vencedor-info h3 { 
+    color: #ffffff !important; 
+    font-size: 0.9rem; 
+    margin-bottom: 2px; 
+}
+.vencedor-info p { 
+    font-size: 0.72rem; 
+    color: #a7f3d0; 
+}
+
+.vencedor-stats { 
+    display: flex; 
+    gap: 8px; 
+}
+
+.vencedor-stat-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    padding: 6px 10px;
+    border-radius: 5px;
+    text-align: right;
+    min-width: 90px;
+}
+.vencedor-stat-card span { font-size: 0.6rem; color: #94a3b8; display: block; text-transform: uppercase; }
+.vencedor-stat-card strong { font-size: 0.95rem; color: #38bdf8; display: block; }
+
+/* GRÁFICO REDUZIDO E COM ESPAÇAMENTO */
+.card-grafico {
+    background: #1e293b;
+    border-radius: 6px;
+    padding: 8px 12px;
+    border: 1px solid #334155;
+}
+
+.card-grafico h4 { 
+    margin-bottom: 4px; 
+    font-size: 0.8rem; 
+    color: #f8fafc;
+}
+
+.grafico-wrapper { 
+    position: relative; 
+    height: 130px; /* Reduzido para economizar espaço vertical */
+    width: 100%; 
+}
+
+/* CARDS DOS MÉTODOS COMPACTOS (~10% MENORES) */
+.cards-metodos-horizontal {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    overflow-x: auto;
+    padding: 2px 0;
+    flex-shrink: 0;
+}
+
+.card-metodo-item {
+    flex: 1;
+    min-width: 140px;
+    background: #1e293b;
+    border: 1.5px solid #334155;
+    border-radius: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* ESTILO DO COMBUSTÍVEL NOS CARDS */
+.card-metodo-combustivel {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #fbbf24; /* Amarelo/Dourado para destacar o combustível */
+    margin-top: 1px;
+}
+
+.card-metodo-item.active .card-metodo-combustivel {
+    color: #fef08a;
+}
+
+.card-metodo-tempo {
+    font-size: 0.68rem;
+    color: #94a3b8;
+}
+
+/* GRÁFICO REAJUSTADO PARA NÃO BATER NAS BARRAS */
+.card-grafico {
+    background: #1e293b;
+    border-radius: 6px;
+    padding: 8px 12px;
+    border: 1px solid #334155;
+}
+
+.grafico-wrapper { 
+    position: relative; 
+    height: 140px; /* Mantém o mapa visível e não esmaga os cards */
+    width: 100%; 
+}
+
+.card-metodo-titulo { font-size: 0.72rem; font-weight: bold; color: #e2e8f0; }
+.card-metodo-dist { font-size: 0.9rem; font-weight: bold; color: #38bdf8; }
+.card-metodo-tempo { font-size: 0.68rem; color: #94a3b8; }
+
+.card-metodo-item:hover {
+    border-color: #38bdf8;
+    background: #0c4a6e;
+}
+
+.card-metodo-item.active {
+    border-color: #10b981 !important;
+    background: #064e3b !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.card-metodo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-metodo-titulo {
+    font-size: 0.78rem;
+    font-weight: bold;
+    color: #e2e8f0;
+}
+
+.card-metodo-dist {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #38bdf8;
+    margin-top: 2px;
+}
+
+.card-metodo-item.active .card-metodo-dist {
+    color: #a7f3d0;
+}
+
+.card-metodo-tempo {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+.painel-sequencia-detalhes {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid #334155;
+}
+
+.painel-sequencia-detalhes h4 {
+    font-size: 0.85rem;
+    color: #38bdf8;
+    margin-bottom: 6px;
+}
+
+/* Estado Recolhido (Oculta o conteúdo deixando só a barra no topo) */
+#resultados.recolhido {
+    transform: translateY(calc(100% - 40px));
+}
+
+/* Barra Superior de Puxar / Recolher */
+.aba-puxar {
+    width: 100%;
+    height: 40px;
+    min-height: 40px;
+    background: #1e293b;
+    color: #38bdf8;
+    text-align: center;
+    line-height: 40px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.85rem;
+    margin-left: -20px;
+    margin-right: -20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    width: calc(100% + 40px);
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-bottom: 1px solid #334155;
+}
+
+.aba-puxar:hover {
+    background: #334155;
+    color: #7dd3fc;
+}
+
+.resultados-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #1e293b;
+}
+
+.btn-fechar-painel {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    font-size: 1.1rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-fechar-painel:hover {
+    background: #ef4444;
+    color: #fff;
+}
+
+/* CARD DE VENCEDOR */
+.card-vencedor {
+    background: linear-gradient(135deg, #064e3b 0%, #047857 100%);
+    border: 1.5px solid #10b981;
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+}
+
+.vencedor-badge {
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: #10b981;
+    color: #022c22;
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+.vencedor-info h3 { color: #ffffff !important; font-size: 1.05rem; margin-bottom: 2px; }
+.vencedor-info h3 span { color: #6ee7b7; }
+.vencedor-info p { font-size: 0.8rem; color: #a7f3d0; }
+
+.vencedor-stats { display: flex; gap: 12px; }
+.vencedor-stat-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-align: right;
+    min-width: 110px;
+}
+.vencedor-stat-card span { font-size: 0.68rem; color: #94a3b8; display: block; text-transform: uppercase; }
+.vencedor-stat-card strong { font-size: 1.15rem; color: #38bdf8; display: block; }
+
+.card-grafico h4 { margin-bottom: 12px; font-size: 0.95rem; }
+.grafico-wrapper { position: relative; height: 220px; width: 100%; }
+
+/* RESUMO DO MÉTODO E CARDS DINÂMICOS DE MÉTRICA */
+.painel-resumo-metodo {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 14px;
+    border: 1px solid #334155;
+}
+
+.painel-resumo-metodo h3 {
+    font-size: 0.95rem;
+    color: #38bdf8;
+    margin-bottom: 4px;
+}
+
+.texto-descricao {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    line-height: 1.4;
+    margin-bottom: 12px;
+}
+
+.cards-metricas-grid {
+    display: flex;
+    gap: 12px;
+}
+
+.card-metrica {
+    flex: 1;
+    background: #0f172a;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left: 3px solid #38bdf8;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-metrica span { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
+.card-metrica strong { font-size: 1.05rem; color: #f8fafc; margin-top: 2px; }
+
+/* CONTAINER DE ABAS DE MÉTODOS */
+.container-abas {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid #334155;
+}
+
+.abas-header {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 8px;
+    overflow-x: auto;
+}
+
+.aba-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 8px 12px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.aba-btn:hover { color: #f8fafc; background: #334155; }
+.aba-btn.active { background: #0284c7; color: #ffffff; }
+
+.aba-item { display: none; padding-top: 12px; }
+.aba-item.active { display: block; }
+
+.aba-resumo-metrica { font-size: 0.8rem; color: #94a3b8; margin-bottom: 10px; }
+.lista-ordem-algoritmo {
+    margin-left: 20px;
+    margin-top: 8px;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* UTILITÁRIOS */
+.oculto { display: none !important; }
+
+/* CONTAINER DOS CARDS LADO A LADO */
+.cards-metodos-horizontal {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.card-metodo-item {
+    flex: 1;
+    min-width: 180px;
+    background: #1e293b;
+    border: 1.5px solid #334155;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.card-metodo-item:hover {
+    border-color: #38bdf8;
+    background: #0c4a6e;
+}
+
+.card-metodo-item.active {
+    border-color: #10b981 !important;
+    background: #064e3b !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.card-metodo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-metodo-titulo {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #e2e8f0;
+}
+
+.card-metodo-dist {
+    font-size: 1.1rem;
+    color: #38bdf8;
+    margin-top: 2px;
+}
+
+.card-metodo-item.active .card-metodo-dist {
+    color: #a7f3d0;
+}
+
+.card-metodo-tempo {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.painel-sequencia-detalhes {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 14px;
+    border: 1px solid #334155;
+    margin-top: 10px;
+}
+
+.painel-sequencia-detalhes h4 {
+    font-size: 0.85rem;
+    color: #38bdf8;
+    margin-bottom: 8px;
+}

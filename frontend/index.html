@@ -7,21 +7,30 @@
     
     <link rel="icon" href="data:,">
     
+    <!-- Estilos (CSS) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
+
+    <!-- Bibliotecas JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-polylineoffset/leaflet.polylineoffset.js"></script>
+    <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 </head>
 <body>
     <div id="container">
+        <!-- SIDEBAR DE CONTROLES -->
         <aside id="sidebar">
             <h2>📍 Otimizador de Rotas</h2>
             
             <div class="card-busca">
-                <label for="input-cidade">1. Filtrar / Mover para Cidade:</label>
-                <input type="text" id="input-cidade" placeholder="Ex: Monte Carmelo, Araguari, Uberlândia..." autocomplete="off">
+                <label for="input-cidade">1. Cidade Base:</label>
+                <input type="text" id="input-cidade" placeholder="Ex: Monte Carmelo, Araguari..." autocomplete="off">
             </div>
 
             <div class="card-busca">
-                <label for="input-endereco">2. Rua ou Ponto Específico:</label>
+                <label for="input-endereco">2. Adicionar Endereço:</label>
                 <div class="busca-wrapper">
                     <input type="text" id="input-endereco" autocomplete="off" placeholder="Digite a rua ou clique no mapa...">
                     <ul id="sugestoes-lista" class="sugestoes-ocultas"></ul>
@@ -37,135 +46,116 @@
             </div>
 
             <div id="acoes">
-                <button id="btn-otimizar" class="btn primary">🚀 Calcular Métodos</button>
-                <button id="btn-limpar" class="btn secondary">🗑️ Limpar</button>
+                <button id="btn-otimizar" class="btn primary">🚀 Otimizar Rota</button>
+                <button id="btn-limpar" class="btn secondary">🗑️ Limpar Tudo</button>
             </div>
 
             <div id="loading" class="loading-box oculto">
                 <div class="spinner"></div>
-                <span>Processando dados e rotas...</span>
+                <span>Processando algoritmos e geocodificação...</span>
             </div>
 
             <hr>
 
-            <div id="resultados" class="oculto">
-                <h3>📊 Comparativo de Métodos</h3>
-                
-                <div class="cards-container">
-                    <!-- 0. Original -->
-                    <div class="card-metodo" id="card-original" 
-                         onmouseenter="preVisualizarRota('original')" 
-                         onmouseleave="restaurarRotaFixada()" 
-                         onclick="fixarMetodo('original')">
-                        <div class="card-header">
-                            <strong>0. Ordem Original</strong>
-                            <span class="info-icon" title="Sequência em que os pontos foram inseridos.">ⓘ</span>
-                        </div>
-                        <div class="metricas-grid">
-                            <div class="metrica-item">
-                                <span class="metrica-label">Distância</span>
-                                <span class="metrica-valor"><span id="dist-original">0</span> km</span>
-                            </div>
-                            <div class="metrica-item">
-                                <span class="metrica-label">Tempo Est.</span>
-                                <span class="metrica-valor" id="tempo-original">--</span>
-                            </div>
-                            <div class="metrica-item">
-                                <span class="metrica-label">Combustível</span>
-                                <span class="metrica-valor" id="custo-original">--</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 1. Vizinho Mais Próximo -->
-                    <div class="card-metodo" id="card-nn" 
-                         onmouseenter="preVisualizarRota('nn')" 
-                         onmouseleave="restaurarRotaFixada()" 
-                         onclick="fixarMetodo('nn')">
-                        <div class="card-header">
-                            <strong>1. Vizinho Mais Próximo</strong>
-                            <span class="info-icon" title="Visita sempre a parada mais próxima seguinte.">ⓘ</span>
-                        </div>
-                        <div class="metricas-grid">
-                            <div class="metrica-item">
-                                <span class="metrica-label">Distância</span>
-                                <span class="metrica-valor"><span id="dist-nn">0</span> km</span>
-                            </div>
-                            <div class="metrica-item">
-                                <span class="metrica-label">Tempo Est.</span>
-                                <span class="metrica-valor" id="tempo-nn">--</span>
-                            </div>
-                            <div class="metrica-item">
-                                <span class="metrica-label">Combustível</span>
-                                <span class="metrica-valor" id="custo-nn">--</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 2. 2-Opt -->
-                    <div class="card-metodo" id="card-opt2" 
-                         onmouseenter="preVisualizarRota('opt2')" 
-                         onmouseleave="restaurarRotaFixada()" 
-                         onclick="fixarMetodo('opt2')">
-                        <div class="card-header">
-                            <strong>2. Busca Local (2-Opt)</strong>
-                            <span class="info-icon" title="Remove cruzamentos ineficientes de vias.">ⓘ</span>
-                        </div>
-                        <div class="metricas-grid">
-                            <div class="metrica-item">
-                                <span class="metrica-label">Distância</span>
-                                <span class="metrica-valor"><span id="dist-opt2">0</span> km</span>
-                            </div>
-                            <div class="metrica-item">
-                                <span class="metrica-label">Tempo Est.</span>
-                                <span class="metrica-valor" id="tempo-opt2">--</span>
-                            </div>
-                            <div class="metrica-item">
-                                <span class="metrica-label">Combustível</span>
-                                <span class="metrica-valor" id="custo-opt2">--</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 3. Simulated Annealing -->
-                    <div class="card-metodo" id="card-sa" 
-                         onmouseenter="preVisualizarRota('sa')" 
-                         onmouseleave="restaurarRotaFixada()" 
-                         onclick="fixarMetodo('sa')">
-                        <div class="card-header">
-                            <strong>3. Simulated Annealing</strong>
-                            <span class="info-icon" title="Meta-heurística estocástica que busca o mínimo global.">ⓘ</span>
-                        </div>
-                        <div class="metricas-grid">
-                            <div class="metrica-item">
-                                <span class="metrica-label">Distância</span>
-                                <span class="metrica-valor"><span id="dist-sa">0</span> km</span>
-                            </div>
-                            <div class="metrica-item">
-                                <span class="metrica-label">Tempo Est.</span>
-                                <span class="metrica-valor" id="tempo-sa">--</span>
-                            </div>
-                            <div class="metrica-item">
-                                <span class="metrica-label">Combustível</span>
-                                <span class="metrica-valor" id="custo-sa">--</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="lista-pontos-container">
-                <h3>📋 Paradas (<span id="qtd-pontos">0</span>)</h3>
+            <!-- Lista de Paradas inseridas pelo usuário -->
+            <div id="lista-pontos-container" class="lista-pontos-container">
+                <h3>📋 Paradas Cadastradas (<span id="qtd-pontos">0</span>)</h3>
                 <ul id="lista-pontos"></ul>
             </div>
         </aside>
 
-        <main id="mapa"></main>
+        <!-- ÁREA PRINCIPAL: MAPA + PAINEL DE RESULTADOS EXPANDIDO -->
+        <main id="main-content">
+            <div id="mapa"></div>
+
+            <!-- PAINEL DE RESULTADOS (Gaveta Inferior) -->
+            <section id="resultados" class="oculto">
+                
+                <!-- BARRA DE PUXAR PARA EXPANDIR / RECOLHER -->
+                <div class="aba-puxar" onclick="alternarPainelResultados()">
+                    <span class="icone-seta">▲</span> Clique para Minimizar / Expandir Painel
+                </div>
+
+                <!-- 🏆 CARD DE DESTAQUE: O MELHOR MÉTODO -->
+                <div id="card-vencedor" class="card-vencedor">
+                    <div class="vencedor-badge">🏆 MELHOR ROTA</div>
+                    <div class="vencedor-info">
+                        <h3 id="vencedor-nome">Método ---</h3>
+                        <p>Redução de <strong id="vencedor-economia">0%</strong> na distância em relação ao trajeto original.</p>
+                    </div>
+                    <div class="vencedor-stats">
+                        <div class="vencedor-stat-card">
+                            <span>Distância Total</span>
+                            <strong id="vencedor-distancia">0.0 km</strong>
+                        </div>
+                        <div class="vencedor-stat-card">
+                            <span>Custo Combustível</span>
+                            <strong id="vencedor-combustivel">R$ 0,00</strong>
+                        </div>
+                        <div class="vencedor-stat-card">
+                            <span>Tempo de Execução</span>
+                            <strong id="vencedor-tempo">0 ms</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 📊 GRÁFICO COMPARATIVO -->
+                <div class="card-grafico">
+                    <h4>📊 Análise Comparativa dos Métodos</h4>
+                    <div class="grafico-wrapper">
+                        <canvas id="graficoComparativo"></canvas>
+                    </div>
+                </div>
+
+                <!-- CARDS HORIZONTAIS DOS MÉTODOS -->
+                <div class="cards-metodos-horizontal">
+                    <div class="card-metodo-item active" onclick="selecionarMetodo('original', this)">
+                        <div class="card-metodo-header">
+                            <span class="card-metodo-titulo">0. Ordem Original</span>
+                        </div>
+                        <strong id="card-dist-original" class="card-metodo-dist">0.00 km</strong>
+                        <span id="card-combustivel-original" class="card-metodo-combustivel">⛽ R$ 0,00</span>
+                        <span id="card-tempo-original" class="card-metodo-tempo">⏱️ 0 min</span>
+                    </div>
+
+                    <div class="card-metodo-item" onclick="selecionarMetodo('opt2', this)">
+                        <div class="card-metodo-header">
+                            <span class="card-metodo-titulo">1. Busca Local (2-Opt)</span>
+                        </div>
+                        <strong id="card-dist-opt2" class="card-metodo-dist">0.00 km</strong>
+                        <span id="card-combustivel-opt2" class="card-metodo-combustivel">⛽ R$ 0,00</span>
+                        <span id="card-tempo-opt2" class="card-metodo-tempo">⏱️ 0 min</span>
+                    </div>
+
+                    <div class="card-metodo-item" onclick="selecionarMetodo('sa', this)">
+                        <div class="card-metodo-header">
+                            <span class="card-metodo-titulo">2. Simulated Annealing</span>
+                        </div>
+                        <strong id="card-dist-sa" class="card-metodo-dist">0.00 km</strong>
+                        <span id="card-combustivel-sa" class="card-metodo-combustivel">⛽ R$ 0,00</span>
+                        <span id="card-tempo-sa" class="card-metodo-tempo">⏱️ 0 min</span>
+                    </div>
+
+                    <div class="card-metodo-item" onclick="selecionarMetodo('aco', this)">
+                        <div class="card-metodo-header">
+                            <span class="card-metodo-titulo">3. Formigas (ACO)</span>
+                        </div>
+                        <strong id="card-dist-aco" class="card-metodo-dist">0.00 km</strong>
+                        <span id="card-combustivel-aco" class="card-metodo-combustivel">⛽ R$ 0,00</span>
+                        <span id="card-tempo-aco" class="card-metodo-tempo">⏱️ 0 min</span>
+                    </div>
+                </div>
+
+                <!-- SEQUÊNCIA DO MÉTODO SELECIONADO -->
+                <div class="painel-sequencia-detalhes">
+                    <h4 id="titulo-sequencia-metodo">Sequência da Rota (ORIGINAL):</h4>
+                    <ol id="lista-paradas-algoritmo" class="lista-ordem-algoritmo"></ol>
+                </div>
+
+            </section>
+        </main>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-polylineoffset/leaflet.polylineoffset.js"></script>
-    <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
