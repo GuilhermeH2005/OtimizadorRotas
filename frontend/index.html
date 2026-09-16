@@ -4,85 +4,187 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Otimizador de Rotas Logísticas</title>
-    
     <link rel="icon" href="data:,">
-    
-    <!-- Estilos (CSS) -->
+
+    <!-- =====================================================
+         ESTILOS
+         ===================================================== -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 
-    <!-- Bibliotecas JavaScript -->
+    <!-- =====================================================
+         BIBLIOTECAS JAVASCRIPT
+         ===================================================== -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset/leaflet.polylineoffset.js"></script>
     <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 </head>
+
 <body>
+
     <div id="container">
-        <!-- SIDEBAR DE CONTROLES -->
+
+        <!-- =================================================
+             SIDEBAR DE CONTROLES
+             ================================================= -->
         <aside id="sidebar">
+
             <h2>📍 Otimizador de Rotas</h2>
-            
-            <div class="card-busca">
-                <label for="input-cidade">1. Cidade Base:</label>
-                <input type="text" id="input-cidade" placeholder="Ex: Monte Carmelo, Araguari..." autocomplete="off">
+
+            <!-- AUTENTICAÇÃO -->
+            <div class="card-busca" id="card-usuario">
+                <!-- Usuário não logado -->
+                <div id="guestControls">
+                    <button type="button" onclick="abrirModalAuth()" class="btn primary btn-full">
+                        🔑 Entrar / Cadastrar
+                    </button>
+                </div>
+
+                <!-- Usuário logado -->
+                <div id="userControls" style="display: none;">
+                    <p style="margin-bottom: 8px;">
+                        Olá, <strong id="userName">Usuário</strong>!
+                    </p>
+                    <div class="user-controls-group">
+                        <button type="button" onclick="salvarRotaAtual()" class="btn secondary btn-flex">
+                            💾 Salvar Rota
+                        </button>
+                        <button type="button" onclick="carregarMinhasRotas()" class="btn secondary btn-flex">
+                            📋 Histórico
+                        </button>
+                        <button type="button" onclick="realizarLogout()" class="btn secondary btn-flex">
+                            🚪 Sair
+                        </button>
+                    </div>
+                </div>
             </div>
 
+            <!-- CIDADE BASE -->
             <div class="card-busca">
-                <label for="input-endereco">2. Adicionar Endereço:</label>
+                <label for="input-cidade" class="label-padrao">1. Cidade Base:</label>
+                <input type="text" id="input-cidade" class="input-padrao" placeholder="Ex: Monte Carmelo, Araguari..." autocomplete="off">
+            </div>
+
+            <!-- ENDEREÇO -->
+            <div class="card-busca">
+                <label for="input-endereco" class="label-padrao">2. Adicionar Endereço:</label>
                 <div class="busca-wrapper">
-                    <input type="text" id="input-endereco" autocomplete="off" placeholder="Digite a rua ou clique no mapa...">
+                    <input type="text" id="input-endereco" class="input-padrao" autocomplete="off" placeholder="Digite a rua ou clique no mapa...">
                     <ul id="sugestoes-lista" class="sugestoes-ocultas"></ul>
                 </div>
             </div>
 
+            <!-- TIPO DE TRAJETO -->
             <div class="card-busca">
-                <label>3. Tipo de Trajeto:</label>
+                <label class="label-padrao">3. Tipo de Trajeto:</label>
                 <div class="radio-group">
-                    <label><input type="radio" name="tipo_circuito" value="fechado" checked> Voltar ao Início</label>
-                    <label><input type="radio" name="tipo_circuito" value="aberto"> Terminar no último ponto</label>
+                    <label class="checkbox-label">
+                        <input type="radio" name="tipo_circuito" value="fechado" checked>
+                        Voltar ao Início
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="radio" name="tipo_circuito" value="aberto">
+                        Terminar no último ponto
+                    </label>
                 </div>
             </div>
 
+            <!-- AÇÕES PRINCIPAIS -->
             <div id="acoes">
-                <button id="btn-otimizar" class="btn primary">🚀 Otimizar Rota</button>
-                <button id="btn-limpar" class="btn secondary">🗑️ Limpar Tudo</button>
+                <button type="button" id="btn-otimizar" class="btn primary btn-full">
+                    🚀 Otimizar Rota
+                </button>
+                <button type="button" id="btn-limpar" class="btn secondary btn-full">
+                    🗑️ Limpar Tudo
+                </button>
             </div>
 
+            <!-- LOADING -->
             <div id="loading" class="loading-box oculto">
                 <div class="spinner"></div>
-                <span>Processando algoritmos e geocodificação...</span>
+                <span id="loading-texto" style="margin-top: 10px; display: block; text-align: center; line-height: 1.5;">
+                    Processando algoritmos e geocodificação...
+                </span>
+                <progress id="loading-barra" value="0" max="100" style="display: none; width: 90%; margin-top: 15px; height: 8px; border-radius: 4px;"></progress>
             </div>
 
             <hr>
 
-            <!-- Lista de Paradas inseridas pelo usuário -->
+            <!-- LISTA DE PARADAS -->
             <div id="lista-pontos-container" class="lista-pontos-container">
                 <h3>📋 Paradas Cadastradas (<span id="qtd-pontos">0</span>)</h3>
                 <ul id="lista-pontos"></ul>
             </div>
+
+            <!-- CRITÉRIO DE PARADA — EXECUÇÃO NORMAL -->
+            <div class="card-busca">
+                <label for="select-criterio-parada" class="label-padrao">4. Critério de Parada:</label>
+                <select id="select-criterio-parada" class="input-padrao" onchange="alternarCamposCriterio()">
+                    <option value="classico">E1 - Critério Clássico (Padrão)</option>
+                    <option value="tempo">Orçamento de Tempo (E2 / E3 / E4)</option>
+                    <option value="iteracoes">Número de Iterações Customizado</option>
+                </select>
+
+                <!-- TEMPO -->
+                <div id="box-tempo" class="box-escondida">
+                    <label for="input-tempo" class="label-padrao">Selecione o Tempo (segundos):</label>
+                    <select id="input-tempo" class="input-padrao">
+                        <option value="10">E2 - 10 Segundos</option>
+                        <option value="30">E3 - 30 Segundos</option>
+                        <option value="60">E4 - 60 Segundos</option>
+                    </select>
+                </div>
+
+                <!-- ITERAÇÕES CUSTOMIZADAS -->
+                <div id="box-iteracoes" class="box-escondida">
+                    <label for="input-iteracoes" class="label-padrao">Máximo de Iterações:</label>
+                    <input type="number" id="input-iteracoes" class="input-padrao" value="100" min="10" max="10000">
+                </div>
+            </div>
+
+            <!-- ÁREA ACADÊMICA (MODAL TRIGGER) -->
+            <div class="card-busca">
+                <h3 class="modal-title">🧪 Área Acadêmica</h3>
+                <p class="modal-desc">Bateria de testes e geração de dados estatísticos (E1-E4).</p>
+                <button type="button" onclick="abrirModalExperimentos()" class="btn primary btn-full btn-primary-indigo">
+                    ⚙️ Configurar Experimentos
+                </button>
+            </div>
+
+            <!-- RELATÓRIO -->
+            <button type="button" id="btn-relatorio" onclick="gerarRelatorioEntrega()" class="btn-acao">
+                📄 Gerar Relatório
+            </button>
+
         </aside>
 
-        <!-- ÁREA PRINCIPAL: MAPA + PAINEL DE RESULTADOS EXPANDIDO -->
+        <!-- =====================================================
+             ÁREA PRINCIPAL
+             ===================================================== -->
         <main id="main-content">
+
+            <!-- MAPA -->
             <div id="mapa"></div>
 
-            <!-- PAINEL DE RESULTADOS (Gaveta Inferior) -->
+            <!-- PAINEL DE RESULTADOS -->
             <section id="resultados" class="oculto">
-                
-                <!-- BARRA DE PUXAR PARA EXPANDIR / RECOLHER -->
+
+                <!-- ABA DE EXPANSÃO -->
                 <div class="aba-puxar" onclick="alternarPainelResultados()">
                     <span class="icone-seta">▲</span> Clique para Minimizar / Expandir Painel
                 </div>
 
-                <!-- 🏆 CARD DE DESTAQUE: O MELHOR MÉTODO -->
+                <!-- CARD DO VENCEDOR -->
                 <div id="card-vencedor" class="card-vencedor">
                     <div class="vencedor-badge">🏆 MELHOR ROTA</div>
                     <div class="vencedor-info">
                         <h3 id="vencedor-nome">Método ---</h3>
                         <p>Redução de <strong id="vencedor-economia">0%</strong> na distância em relação ao trajeto original.</p>
                     </div>
+
+                    <!-- ESTATÍSTICAS -->
                     <div class="vencedor-stats">
                         <div class="vencedor-stat-card">
                             <span>Distância Total</span>
@@ -99,7 +201,7 @@
                     </div>
                 </div>
 
-                <!-- 📊 GRÁFICO COMPARATIVO -->
+                <!-- GRÁFICO COMPARATIVO -->
                 <div class="card-grafico">
                     <h4>📊 Análise Comparativa dos Métodos</h4>
                     <div class="grafico-wrapper">
@@ -107,55 +209,184 @@
                     </div>
                 </div>
 
-                <!-- CARDS HORIZONTAIS DOS MÉTODOS -->
+                <!-- CARDS DOS MÉTODOS -->
                 <div class="cards-metodos-horizontal">
+                    <!-- ORIGINAL -->
                     <div class="card-metodo-item active" onclick="selecionarMetodo('original', this)">
-                        <div class="card-metodo-header">
-                            <span class="card-metodo-titulo">0. Ordem Original</span>
-                        </div>
+                        <div class="card-metodo-header"><span class="card-metodo-titulo">0. Ordem Original</span></div>
                         <strong id="card-dist-original" class="card-metodo-dist">0.00 km</strong>
                         <span id="card-combustivel-original" class="card-metodo-combustivel">⛽ R$ 0,00</span>
                         <span id="card-tempo-original" class="card-metodo-tempo">⏱️ 0 min</span>
                     </div>
 
+                    <!-- 2-OPT -->
                     <div class="card-metodo-item" onclick="selecionarMetodo('opt2', this)">
-                        <div class="card-metodo-header">
-                            <span class="card-metodo-titulo">1. Busca Local (2-Opt)</span>
-                        </div>
+                        <div class="card-metodo-header"><span class="card-metodo-titulo">1. Busca Local (2-Opt)</span></div>
                         <strong id="card-dist-opt2" class="card-metodo-dist">0.00 km</strong>
                         <span id="card-combustivel-opt2" class="card-metodo-combustivel">⛽ R$ 0,00</span>
                         <span id="card-tempo-opt2" class="card-metodo-tempo">⏱️ 0 min</span>
                     </div>
 
+                    <!-- SIMULATED ANNEALING -->
                     <div class="card-metodo-item" onclick="selecionarMetodo('sa', this)">
-                        <div class="card-metodo-header">
-                            <span class="card-metodo-titulo">2. Simulated Annealing</span>
-                        </div>
+                        <div class="card-metodo-header"><span class="card-metodo-titulo">2. Simulated Annealing</span></div>
                         <strong id="card-dist-sa" class="card-metodo-dist">0.00 km</strong>
                         <span id="card-combustivel-sa" class="card-metodo-combustivel">⛽ R$ 0,00</span>
                         <span id="card-tempo-sa" class="card-metodo-tempo">⏱️ 0 min</span>
                     </div>
 
+                    <!-- ACO -->
                     <div class="card-metodo-item" onclick="selecionarMetodo('aco', this)">
-                        <div class="card-metodo-header">
-                            <span class="card-metodo-titulo">3. Formigas (ACO)</span>
-                        </div>
+                        <div class="card-metodo-header"><span class="card-metodo-titulo">3. Formigas (ACO)</span></div>
                         <strong id="card-dist-aco" class="card-metodo-dist">0.00 km</strong>
                         <span id="card-combustivel-aco" class="card-metodo-combustivel">⛽ R$ 0,00</span>
                         <span id="card-tempo-aco" class="card-metodo-tempo">⏱️ 0 min</span>
                     </div>
                 </div>
 
-                <!-- SEQUÊNCIA DO MÉTODO SELECIONADO -->
+                <!-- SEQUÊNCIA DA ROTA -->
                 <div class="painel-sequencia-detalhes">
                     <h4 id="titulo-sequencia-metodo">Sequência da Rota (ORIGINAL):</h4>
                     <ol id="lista-paradas-algoritmo" class="lista-ordem-algoritmo"></ol>
                 </div>
-
             </section>
         </main>
     </div>
 
+    <!-- =========================================================
+         MODAL DE AUTENTICAÇÃO
+         ========================================================= -->
+    <div id="authModal" class="modal">
+        <div class="modal-content modal-sm">
+            <span class="close-btn" onclick="fecharModalAuth()">&times;</span>
+
+            <!-- LOGIN -->
+            <div id="formLogin">
+                <h3 class="modal-title">🔑 Entrar no Sistema</h3>
+                <form onsubmit="realizarLogin(event)" class="form-auth">
+                    <input type="email" id="loginEmail" class="input-auth" placeholder="Seu E-mail" required>
+                    <input type="password" id="loginSenha" class="input-auth" placeholder="Sua Senha" required>
+                    <button type="submit" class="btn primary">Entrar</button>
+                </form>
+                <p class="auth-footer">
+                    Não tem uma conta? <a href="#" onclick="alternarFormAuth('cadastro')">Cadastre-se</a>
+                </p>
+            </div>
+
+            <!-- CADASTRO -->
+            <div id="formCadastro" style="display: none;">
+                <h3 class="modal-title">📝 Criar Nova Conta</h3>
+                <form onsubmit="realizarCadastro(event)" class="form-auth">
+                    <input type="text" id="cadNome" class="input-auth" placeholder="Seu Nome" required>
+                    <input type="email" id="cadEmail" class="input-auth" placeholder="Seu E-mail" required>
+                    <input type="password" id="cadSenha" class="input-auth" placeholder="Sua Senha" required>
+                    <button type="submit" class="btn primary">Cadastrar</button>
+                </form>
+                <p class="auth-footer">
+                    Já tem uma conta? <a href="#" onclick="alternarFormAuth('login')">Faça Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL DE HISTÓRICO
+         ========================================================= -->
+    <div id="historicoModal" class="modal">
+        <div class="modal-content modal-lg">
+            <span class="close-btn" onclick="fecharModalHistorico()">&times;</span>
+            <h3 class="modal-title">📋 Minhas Rotas Salvas</h3>
+            <div id="lista-rotas-historico">
+                <!-- Rotas renderizadas dinamicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL DE EXPERIMENTOS
+         ========================================================= -->
+    <div id="experimentosModal" class="modal">
+        <div class="modal-content modal-sm">
+            <span class="close-btn" onclick="fecharModalExperimentos()" title="Fechar">&times;</span>
+            
+            <h3 class="modal-title">🧪 Configurar Experimentos</h3>
+            <p class="modal-desc">
+                Selecione as condições. O sistema rodará em background para não travar sua tela.
+            </p>
+
+            <label class="label-padrao">Condições experimentais:</label>
+            
+            <!-- NOVO LAYOUT EM GRID PARA AS CONDIÇÕES -->
+            <div class="experimentos-box" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-top: 8px;">
+                
+                <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px;">
+                    <!-- CORREÇÃO: Inclusão do ID -->
+                    <input type="checkbox" id="experimento-e1" class="check-experimento" value="e1" checked style="width: 16px; height: 16px; cursor: pointer;">
+                    <span><strong>E1</strong> — Clássico</span>
+                </label>
+                
+                <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="experimento-e2" class="check-experimento" value="e2" style="width: 16px; height: 16px; cursor: pointer;">
+                    <span><strong>E2</strong> — 10 seg</span>
+                </label>
+                
+                <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="experimento-e3" class="check-experimento" value="e3" style="width: 16px; height: 16px; cursor: pointer;">
+                    <span><strong>E3</strong> — 30 seg</span>
+                </label>
+                
+                <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="experimento-e4" class="check-experimento" value="e4" style="width: 16px; height: 16px; cursor: pointer;">
+                    <span><strong>E4</strong> — 60 seg</span>
+                </label>
+
+            </div>
+
+            <button type="button" id="btn-selecionar-todos-experimentos" class="btn secondary btn-full" onclick="selecionarTodosExperimentos(true)" style="padding: 8px; font-size: 12px; margin-top: 12px;">
+                ☑️ Selecionar Todas as Condições
+            </button>
+
+            <div style="margin-top: 20px;">
+                <label for="input-repeticoes-experimentos" class="label-padrao">Número de repetições por condição:</label>
+                <input type="number" id="input-repeticoes-experimentos" class="input-padrao" value="30" min="1" max="100" style="font-size: 16px; font-weight: bold; color: #0f172a;">
+                <small class="texto-ajuda">Padrão metodológico recomendado: 30 repetições.</small>
+            </div>
+
+            <button type="button" onclick="executarExperimentos()" class="btn primary btn-full btn-primary-blue" style="margin-top: 25px; padding: 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+                ▶️ Iniciar Bateria de Testes
+            </button>
+
+            <div id="status-experimentos" class="status-box"></div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL DE EXPORTAÇÃO DOS RESULTADOS
+         ========================================================= -->
+    <div id="exportacaoModal" class="modal">
+        <div class="modal-content modal-sm" style="text-align: center;">
+            <span class="close-btn" onclick="fecharModalExportacao()">&times;</span>
+            
+            <div style="font-size: 40px; margin-bottom: 10px;">✅</div>
+            <h3 class="modal-title" style="border: none; padding: 0;">Bateria Concluída!</h3>
+            <p class="modal-desc" style="margin-bottom: 20px;">
+                Todos os testes foram executados com sucesso. Selecione abaixo a métrica que deseja baixar em CSV.
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                <button type="button" onclick="exportarDistancias()" class="btn secondary" style="font-size: 12px; padding: 10px;">📏 Distâncias</button>
+                <button type="button" onclick="exportarAvaliacoes()" class="btn secondary" style="font-size: 12px; padding: 10px;">🔢 Avaliações</button>
+                <button type="button" onclick="exportarTempos()" class="btn secondary" style="font-size: 12px; padding: 10px;">⏱️ Tempos</button>
+                <button type="button" onclick="exportarIteracoes()" class="btn secondary" style="font-size: 12px; padding: 10px;">🔄 Iterações</button>
+            </div>
+
+            <button type="button" onclick="exportarTodosDados()" class="btn primary btn-full" style="background-color: #10b981; padding: 12px; font-weight: bold;">
+                📦 Exportar Planilha Completa
+            </button>
+        </div>
+    </div>
+
     <script src="app.js"></script>
+
 </body>
 </html>
