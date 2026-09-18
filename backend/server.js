@@ -544,6 +544,44 @@ app.get(
     }
 );
 
+// ------------------------------------------
+// EXCLUIR ROTA DO HISTÓRICO
+// ------------------------------------------
+
+app.delete(
+    '/api/rotas/:id',
+    autenticarToken,
+    (req, res) => {
+
+        const rotaId = req.params.id;
+        const usuarioId = req.usuario.id;
+
+        const sql = `
+            DELETE FROM rotas_salvas
+            WHERE id = ? AND usuario_id = ?
+        `;
+
+        db.query(sql, [rotaId, usuarioId], (err, result) => {
+            if (err) {
+                console.error('Erro ao excluir rota:', err);
+                return res.status(500).json({
+                    erro: 'Erro ao excluir rota do histórico.'
+                });
+            }
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({
+                    erro: 'Rota não encontrada ou você não tem permissão para excluí-la.'
+                });
+            }
+
+            res.json({
+                mensagem: 'Rota excluída com sucesso!'
+            });
+        });
+    }
+);
+
 // ==========================================
 // 3. CENÁRIOS
 // ==========================================

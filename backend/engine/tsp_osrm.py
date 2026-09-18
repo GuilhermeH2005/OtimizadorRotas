@@ -532,7 +532,7 @@ def simulated_annealing(
     melhor_solucao = solucao_atual[:]
     melhor_dist = distancia_atual
 
-    # Parâmetros exatos do artigo MMEP
+    # Parâmetros exatos do artigo MMEP (Huang, Liu e Tan, 2016)
     temperatura = 2000.0
     resfriamento = 0.95
     temperatura_minima = 1e-10
@@ -558,8 +558,11 @@ def simulated_annealing(
                 break
 
         # Geração de Vizinho (2-Opt Swap)
-        i, j = sorted(random.sample(range(1, n), 2))
-        vizinho = solucao_atual[:i] + solucao_atual[i:j + 1][::-1] + solucao_atual[j + 1:]
+        if n > 2:
+            i, j = sorted(random.sample(range(1, n), 2))
+            vizinho = solucao_atual[:i] + solucao_atual[i:j + 1][::-1] + solucao_atual[j + 1:]
+        else:
+            vizinho = solucao_atual[:]
         
         distancia_vizinho = contador.avaliar(vizinho, matriz, eh_circuito_fechado)
         iteracoes += 1
@@ -582,17 +585,14 @@ def simulated_annealing(
             if distancia_atual < melhor_dist:
                 melhor_solucao = solucao_atual[:]
                 melhor_dist = distancia_atual
-                rejeicoes_consecutivas = 0
-            else:
-                rejeicoes_consecutivas += 1
+            
+            # CORREÇÃO: Qualquer solução aceita (melhor ou pior via Metropolis) reseta as rejeições
+            rejeicoes_consecutivas = 0
         else:
             rejeicoes_consecutivas += 1
 
-        # Resfriamento
-        temperatura *= resfriamento
-
-        if modo_parada == "tempo" and temperatura <= temperatura_minima:
-            temperatura = max(2000.0, melhor_dist * 0.2)
+        # CORREÇÃO: Resfriamento padrão seguro (sem reset artificial para 2000)
+        temperatura = max(temperatura * resfriamento, temperatura_minima)
 
     tempo_total = (time.perf_counter() - inicio) * 1000
     return melhor_solucao, melhor_dist, round(tempo_total, 2), iteracoes, contador.total
@@ -603,18 +603,9 @@ def simulated_annealing(
 # ============================================================
 
 def determinar_numero_formigas(n):
-
     if n < 50:
         return n
-
-    if n < 70:
-        return 50
-
-    if n < 100:
-        return 70
-
-    return 100
-
+    return 50 
 
 # ============================================================
 # ANT COLONY OPTIMIZATION
@@ -670,7 +661,7 @@ def ant_colony_optimization(
                     break
             
             # 2. Trava de segurança para problemas grandes (evita loop infinito)
-            if ciclos >= 2500:
+            if ciclos >= 300:
                 break
         # ====================================================
 

@@ -72,6 +72,37 @@ const iconeParadaPadrao = L.icon({
     shadowSize: [41, 41]
 });
 
+async function excluirRotaHistorico(idRota) {
+    if (!confirm("Tem certeza que deseja excluir esta rota do histórico?")) {
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('token_jwt');
+
+        const resposta = await fetch(`http://localhost:3000/api/rotas/${idRota}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(dados.erro || 'Erro ao excluir rota.');
+        }
+
+        alert(dados.mensagem);
+        
+        carregarMinhasRotas(); 
+
+    } catch (error) {
+        console.error('Erro:', error);
+        alert(error.message);
+    }
+}
+
 function criarIconeNumerado(numero, ehPartida = false) {
 
     const corFundo = ehPartida
@@ -2280,6 +2311,10 @@ async function carregarMinhasRotas() {
                         <button onclick="carregarRotaNoMapa(${rota.id})" class="btn primary" style="padding: 8px 12px; font-size: 12px; cursor: pointer;">
                             🗺️ Abrir no Mapa
                         </button>
+
+                        <button onclick="excluirRotaHistorico(${rota.id})" class="btn" style="padding: 8px 12px; font-size: 12px; cursor: pointer; background-color: #ef4444; color: white;">
+                                🗑️ Excluir
+                        </button>
                     </div>
                 `;
             });
@@ -2603,6 +2638,11 @@ if (btnOtimizar) {
                         resultado.erro ||
                         'Erro ao executar a otimização.'
                     );
+                }
+
+                // 🔒 TRAVA DE SEGURANÇA: Garante que a resposta possui o objeto metodos
+                if (!resultado || !resultado.metodos) {
+                    throw new Error('A resposta do servidor está incompleta ou inválida (objeto "metodos" ausente).');
                 }
 
                 dadosResultadoGlobal =
@@ -4037,3 +4077,5 @@ window.exportarTodosDados =
 
 window.abrirModalExperimentos = abrirModalExperimentos;
 window.fecharModalExperimentos = fecharModalExperimentos;
+
+window.excluirRotaHistorico = excluirRotaHistorico;
